@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: infinite-calls
+  labels:
+    app: infinite-calls
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: infinite-calls
+  template:
+    metadata:
+      name: infinite-calls
+      labels:
+        app: infinite-calls
+    spec:
+      containers:
+      - name: infinite-calls
+        image: busybox
+        command:
+        - /bin/sh
+        - -c
+        - "while true; do wget -q -O- http://20.112.216.194/api/fib?a=789; done"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: calcapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: calcapp
+  template:
+    metadata:
+      labels:
+        run: calcapp
+    spec:
+      containers:
+      - name: calcapp
+        image: docker.io/ilyasdocker/nodeexpresscalculatorapi:latest
+        ports:
+        - containerPort: 80
+        resources:
+          limits:
+            cpu: 500m
+          requests:
+            cpu: 20m
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: calcapp
+  labels:
+    run: calcapp
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+  selector:
+    run: calcapp
+---
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: calcapp-hpa
+spec:
+  maxReplicas: 500 # define max replica count
+  minReplicas: 1  # define min replica count
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: calcapp
+  targetCPUUtilizationPercentage: 10 # target CPU utilization
+
+---

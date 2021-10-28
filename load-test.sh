@@ -1,0 +1,1 @@
+curl -L https://goo.gl/S1Dc3R | bash -s 20 "http://20.204.241.96/api/fib?a=789"
